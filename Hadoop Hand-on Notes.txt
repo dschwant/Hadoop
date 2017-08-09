@@ -1,0 +1,24 @@
+Safari - THE ULTIMATE HANDS-ON HADOOP
+
+https://www.virtualbox.org/wiki/Downloads
+
+https://hortonworks.com/downloads/#sandbox
+
+https://grouplens.org/datasets/movielens/ 
+10K set
+
+http://127.0.0.1:8888
+
+
+maria_dev
+maria_dev
+
+import u.data, u.info, u.user
+
+select *
+from ratings r
+	join movie_names mn on r.movie_id = mn.movie_id
+	join users u on r.user_id = u.user_id
+limit 10;
+
+http://media.sundog-soft.com/hadoop/hadoopcoursetips.pdf
