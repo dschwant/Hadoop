@@ -142,15 +142,14 @@ hadoop fs -get ms_sql_driver/*
 untar
 Copy sqljdbc42.jar to /usr/hdp/current/sqoop-client/lib/ 
 
-sqoop list-databases --connect jdbc:sqlserver://192.168.85.57 --username dw --password xxxxxPWxxxxx
+sqoop list-databases --connect jdbc:sqlserver://x.x.x.x --username dw --password xxxxxPWxxxxx
 
-sqoop eval --connect "jdbc:sqlserver://192.168.85.57" --username dw --password xxxxxPWxxxxx -query "SELECT * FROM FDS.dw.FDS_DIMENSIONS_DTBL"
+sqoop eval --connect "jdbc:sqlserver://x.x.x.x" --username dw --password xxxxxPWxxxxx -query "SELECT * FROM FDS.dw.FDS_DIMENSIONS_DTBL"
 
-sqoop list-tables --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx -- --schema dw
+sqoop list-tables --connect "jdbc:sqlserver://x.x.x.x;database=FDS" --username dw --password xxxxxPWxxxxx -- --schema dw
 
-sqoop import --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL -- --schema dw
-sqoop import --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL --hive-import -- --schema dw
-
+sqoop import --connect "jdbc:sqlserver://x.x.x.x;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL -- --schema dw
+sqoop import --connect "jdbc:sqlserver://x.x.x.x;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL --hive-import -- --schema dw
 
 ----------my sql--------------
 wget http://media.sundog-soft.com/hadoop/movielens.sql
