@@ -1,0 +1,7 @@
+https://www.cloudera.com/downloads/quickstart_vms/5-10.html
+
+Cloudera:
+username: cloudera
+password: cloudera
+
+https://www.cloudera.com/developers/get-started-with-hadoop-tutorial.html

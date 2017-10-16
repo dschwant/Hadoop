@@ -22,3 +22,160 @@ from ratings r
 limit 10;
 
 http://media.sundog-soft.com/hadoop/hadoopcoursetips.pdf
+
+
+-----------
+su root
+hadoop ---> s4ndb0x
+yum install python-pip
+yum install nano
+pip install mrjob
+exit
+wget http://media.sundog-soft.com/hadoop/ml-100k/u.data
+wget http://media.sundog-soft.com/hadoop/ml-100k/u.item
+wget http://media.sundog-soft.com/hadoop/RatingsBreakdown.py
+
+python RatingsBreakdown.py -r hadoop --hadoop-streaming-jar /usr/hdp/current/hadoop-mapreduce-client/hadoop-streaming.jar u.data
+
+ambari-admin-password-reset
+s4ndb0x
+
+
+----------- Pig -------------
+ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
+metadata = LOAD '/user/maria_dev/ml-100k/u.item' USING PigStorage('|')  AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
+
+nameLookup = Foreach metadata GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) AS releaseTime;
+
+ratingsByMovie = GROUP ratings BY movieID;
+
+avgRatings = FOREACH ratingsByMovie GENERATE group AS movieID, AVG(ratings.rating) AS avgRating;
+
+fiveStarMovies = FILTER avgRatings BY avgRating > 4.0;
+
+fiveStarWithMeta = JOIN fiveStarMovies BY movieID, nameLookup BY movieID;
+
+oldestFiveStarWithMeta = ORDER fiveStarWithMeta BY nameLookup::releaseTime;
+
+DESCRIBE oldestFiveStarWithMeta;
+/*
+oldestFiveStarWithMeta: {fiveStarMovies::movieID: int,fiveStarMovies::avgRating: double,nameLookup::movieID: int,nameLookup::movieTitle: chararray,nameLookup::releaseTime: long}
+*/
+
+STORE oldestFiveStarWithMeta into 'oldestFiveStarWithMetaOut_01.pig.data';
+
+oldestFiveStarWithMeta = LOAD 'oldestFiveStarWithMetaOut_01.pig.data' 
+						USING PigStorage('\t') 
+                        AS (movieID:int, avgRating:double, movieID2:int, movieTitle:chararray , releaseTime:long);
+
+oldestFiveStarMoviesSlim = FOREACH oldestFiveStarWithMeta GENERATE movieID, avgRating, movieTitle, releaseTime;
+
+DESCRIBE oldestFiveStarMoviesSlim;
+DUMP oldestFiveStarMoviesSlim;
+
+/*
+DESCRIBE oldestFiveStarWithMeta;
+DUMP oldestFiveStarWithMeta;
+*/
+/*-------------------------------------------------*/
+ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
+metadata = LOAD '/user/maria_dev/ml-100k/u.item' USING PigStorage('|')  AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
+
+nameLookup = Foreach metadata GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) AS releaseTime;
+
+ratingsByMovie = GROUP ratings BY movieID;
+avgRatingsCountReviews = FOREACH ratingsByMovie GENERATE group AS movieID, AVG(ratings.rating) AS avgRating, COUNT(ratings.rating) AS reviewCount;
+
+lowStarMovies = FILTER avgRatingsCountReviews BY avgRating < 2.0;
+
+lowStarWithMeta = JOIN lowStarMovies BY movieID, nameLookup BY movieID;
+
+mostRatingsLowStarWithMeta = ORDER lowStarWithMeta BY lowStarMovies::reviewCount DESC;
+
+mostRatingsLowStarWithMetaSlim = FOREACH mostRatingsLowStarWithMeta GENERATE 
+	lowStarMovies::movieID AS movieID
+	, lowStarMovies::avgRating AS avgRating
+	, lowStarMovies::reviewCount AS reviewCount
+	, nameLookup::movieTitle AS movieTitle
+	, nameLookup::releaseTime AS releaseTime;
+
+DESCRIBE mostRatingsLowStarWithMetaSlim;
+DUMP mostRatingsLowStarWithMetaSlim;
+/*
+mostRatingsLowStarWithMetaSlim: {movieID: int,avgRating: double,reviewCount: long,movieTitle: chararray,releaseTime: long}
+*/
+----------- End Pig -------------
+
+--------------- spark ----------------
+>> Change Advanced spark2-log4j-properties and Advanced spark-log4j-properties to ERROR only and restart
+
+
+mkdir ml-100k
+cd ml-100k
+wget http://media.sundog-soft.com/hadoop/ml-100k/u.data
+wget http://media.sundog-soft.com/hadoop/ml-100k/u.item
+cd ..
+wget http://media.sundog-soft.com/hadoop/Spark.zip
+unzip Spark.zip
+spark-submit LowestRatedMovieSpark.py
+
+export SPARK_MAJOR_VERSION=2
+spark-submit 
+------------- hive ----------------
+select * 
+from ratings r
+join names n on r.movieID = n.movieID;
+
+create view topMovieIDs as
+
+  select title, count(userID) ratings_cnt 
+  from ratings r
+   join names n on r.movieID = n.movieID
+  group by title
+  order by ratings_cnt desc
+
+-------------------- sqoop ------------------
+http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774 
+get tar
+upload to hdfs
+hadoop fs -get ms_sql_driver/*
+untar
+Copy sqljdbc42.jar to /usr/hdp/current/sqoop-client/lib/ 
+
+sqoop list-databases --connect jdbc:sqlserver://192.168.85.57 --username dw --password xxxxxPWxxxxx
+
+sqoop eval --connect "jdbc:sqlserver://192.168.85.57" --username dw --password xxxxxPWxxxxx -query "SELECT * FROM FDS.dw.FDS_DIMENSIONS_DTBL"
+
+sqoop list-tables --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx -- --schema dw
+
+sqoop import --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL -- --schema dw
+sqoop import --connect "jdbc:sqlserver://192.168.85.57;database=FDS" --username dw --password xxxxxPWxxxxx --table FDS_DIMENSIONS_DTBL --hive-import -- --schema dw
+
+
+----------my sql--------------
+wget http://media.sundog-soft.com/hadoop/movielens.sql
+
+mysql -u root -p 
+>>> hadoop
+
+create database movielens;
+use movielens;
+set names 'utf8';
+set character set utf8;
+source movielens.sql
+show databases;
+show tables;
+grant all privileges on movielens.* to ''@'localhost';
+
+sqoop import --connect jdbc:mysql://localhost/movielens --driver com.mysql.jdbc.Driver --table movies -m 1
+
+sqoop import --connect jdbc:mysql://localhost/movielens --driver com.mysql.jdbc.Driver --table movies -m 1 --hive-import
+
+create table exported_movies (id integer, title varchar(255), releaseDate date);
+
+sqoop export --connect jdbc:mysql://localhost/movielens --driver com.mysql.jdbc.Driver --table exported_movies -m 1 --export-dir /apps/hive/warehouse/movies --input-fields-terminated-by '\0001'
+
+select * from exported_movies
+
+-------------- hbase -------------
+hbase shell
